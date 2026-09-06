@@ -573,87 +573,36 @@ Configuration should describe intent, not contain arbitrary executable applicati
 
 ```json
 {
-  "workflowName": "ahv_vm_provisioning",
-  "flowId": "ahv_vm_provisioning_flow",
+  "workflowName": "cluster_health_verification",
   "version": "1.0",
   "input": {
-    "vmName": "ntnx-web-01",
-    "cluster": "prod-ahv-a",
-    "cpu": 4,
-    "memoryMb": 8192
+    "cluster": "prod-ahv-a"
   },
   "nodes": [
     {
-      "id": "validate_blueprint",
-      "type": "shell",
-      "config": {
-        "command": "calm blueprint validate web-tier",
-        "output": {
-          "blueprint": "web-tier"
-        }
-      }
-    },
-    {
-      "id": "reserve_ipam_address",
-      "type": "rest",
-      "config": {
-        "method": "POST",
-        "url": "/prism/v4/ipam/reservations",
-        "output": {
-          "ip": "10.42.8.51"
-        }
-      }
-    },
-    {
-      "id": "clone_ahv_image",
-      "type": "shell",
-      "config": {
-        "command": "acli image.clone ubuntu-golden"
-      }
-    },
-    {
-      "id": "attach_flow_categories",
-      "type": "rest",
-      "config": {
-        "method": "POST",
-        "url": "/prism/v4/flow/categories",
-        "output": {
-          "app": "web",
-          "environment": "prod"
-        }
-      }
-    },
-    {
-      "id": "power_on_vm",
-      "type": "shell",
-      "config": {
-        "command": "acli vm.on ntnx-web-01"
-      }
-    },
-    {
-      "id": "prism_health_check",
+      "id": "check_cluster",
       "type": "rest",
       "config": {
         "method": "GET",
-        "url": "/prism/v4/vms/ntnx-web-01/health"
+        "url": "/prism/v4/clusters/prod-ahv-a/health",
+        "delayMs": 500
+      }
+    },
+    {
+      "id": "publish_result",
+      "type": "rest",
+      "config": {
+        "method": "POST",
+        "url": "/operations/health-results",
+        "delayMs": 400
       }
     }
   ],
   "edges": [
-    ["validate_blueprint", "reserve_ipam_address"],
-    ["validate_blueprint", "clone_ahv_image"],
-    ["reserve_ipam_address", "attach_flow_categories"],
-    ["clone_ahv_image", "power_on_vm"],
-    ["attach_flow_categories", "prism_health_check"],
-    ["power_on_vm", "prism_health_check"]
-  ],
-  "onFailure": {
-    "compensationFlow": "cleanup_failed_ahv_vm"
-  }
+    ["check_cluster", "publish_result"]
+  ]
 }
 ```
-
-This example shows the complete contract: `flowId` selects the executable flow implementation, `nodes` define individual operations, `config` supplies task-specific inputs, `edges` define ordering and parallelism, and `onFailure` identifies the cleanup workflow.
 
 ### 10.3 Creating a new executor type
 
