@@ -34,10 +34,7 @@ public class RestTaskExecutor implements TaskExecutor {
             return flowResult;
         }
         Map<String, Object> output = new LinkedHashMap<>();
-        output.put("method", method);
-        output.put("url", url);
-        output.put("status", 200);
-        output.put("body", "dummy REST operation completed");
+        output.putAll(DummyApiClient.call(method, url));
         output.putAll(flowResult.output());
         output.putAll(configuredOutput(request.config()));
         return TaskResult.success(output);

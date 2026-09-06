@@ -32,10 +32,13 @@ public class ShellTaskExecutor implements TaskExecutor {
         if (!flowResult.success()) {
             return flowResult;
         }
+        Map<String, Object> shellResult = DummyShellRunner.run(command);
+        if (!Integer.valueOf(0).equals(shellResult.get("exitCode"))) {
+            return TaskResult.failure(String.valueOf(shellResult.getOrDefault("error", "shell task failed")));
+        }
         Map<String, Object> output = new LinkedHashMap<>();
         output.put("command", command);
-        output.put("exitCode", 0);
-        output.put("stdout", "dummy shell operation completed");
+        output.putAll(shellResult);
         output.putAll(flowResult.output());
         output.putAll(configuredOutput(request.config()));
         return TaskResult.success(output);
