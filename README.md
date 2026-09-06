@@ -1,8 +1,6 @@
 # Nutanix Workflow Orchestrator
 
-[GitHub repository](https://github.com/who-else-but-arjun/nutanix-workflow-orchestrator)
-
-A Temporal-backed, configuration-driven workflow engine for Nutanix-style infrastructure operations.
+A Temporal-backed, configuration-driven workflow engine for infrastructure operations.
 
 The orchestrator accepts JSON workflow definitions, validates their DAG topology, runs independent steps in parallel when dependencies allow it, tracks workflow and node state, dispatches compensation workflows after failures, and exposes execution details through a React dashboard and Temporal UI.
 
