@@ -29,7 +29,7 @@ export function WorkflowList({
 
   return (
     <aside className={`left-pane ${collapsed ? 'collapsed' : ''}`}>
-      <div className="brand">
+      <header className="brand">
         <div className="brand-mark">
           <img src="/flowforge-logo.png" alt="FlowForge" />
         </div>
@@ -40,7 +40,7 @@ export function WorkflowList({
         <button className="icon-button sidebar-toggle" onClick={onToggleCollapsed} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
           {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
-      </div>
+      </header>
 
       <section className="metric-grid" aria-label="Execution summary">
         {metrics.map(([label, value]) => (
@@ -51,9 +51,12 @@ export function WorkflowList({
         ))}
       </section>
 
-      <section className="panel">
+      <section className="panel workflow-catalog">
         <div className="panel-head">
-          <h2>Workflow Definitions</h2>
+          <div>
+            <span className="section-kicker">Automation catalog</span>
+            <h2>Workflow definitions</h2>
+          </div>
           <button className="icon-button" onClick={onRefresh} aria-label="Refresh">
             <RefreshCw size={16} />
           </button>

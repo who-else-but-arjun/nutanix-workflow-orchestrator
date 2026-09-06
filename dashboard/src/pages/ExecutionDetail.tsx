@@ -64,7 +64,7 @@ function ExecutionsTable({
     <section className="executions-table-panel">
       <div className="panel-head compact-head">
         <div>
-          <h2>Executions</h2>
+          <h2>Recent runs</h2>
           <p>{executions.length} runs tracked</p>
         </div>
       </div>
@@ -157,6 +157,14 @@ export function ExecutionDetail({
 
   return (
     <main className="detail">
+      <header className="page-header">
+        <div>
+          <span className="section-kicker">Observability / execution ledger</span>
+          <h1>Run history</h1>
+          <p>Track workflow progress, node outcomes, and recovery activity.</p>
+        </div>
+        <span className="live-indicator"><span /> Live polling</span>
+      </header>
       <ExecutionsTable executions={executions} selectedId={execution.id} onSelectExecution={onSelectExecution} />
 
       <section className="detail-hero">
