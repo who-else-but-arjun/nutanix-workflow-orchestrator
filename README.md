@@ -124,36 +124,87 @@ The included definitions demonstrate:
 
 ```json
 {
-      "workflowName": "cluster_health_verification",
+      "workflowName": "ahv_vm_provisioning",
+      "flowId": "ahv_vm_provisioning_flow",
       "version": "1.0",
       "input": {
-            "cluster": "prod-ahv-a"
+            "vmName": "ntnx-web-01",
+            "cluster": "prod-ahv-a",
+            "cpu": 4,
+            "memoryMb": 8192
       },
       "nodes": [
             {
-                  "id": "check_cluster",
-                  "type": "rest",
+                  "id": "validate_blueprint",
+                  "type": "shell",
                   "config": {
-                        "method": "GET",
-                        "url": "/prism/v4/clusters/prod-ahv-a/health",
-                        "delayMs": 500
+                        "command": "calm blueprint validate web-tier",
+                        "output": {
+                              "blueprint": "web-tier"
+                        }
                   }
             },
             {
-                  "id": "publish_result",
+                  "id": "reserve_ipam_address",
                   "type": "rest",
                   "config": {
                         "method": "POST",
-                        "url": "/operations/health-results",
-                        "delayMs": 400
+                        "url": "/prism/v4/ipam/reservations",
+                        "output": {
+                              "ip": "10.42.8.51"
+                        }
+                  }
+            },
+            {
+                  "id": "clone_ahv_image",
+                  "type": "shell",
+                  "config": {
+                        "command": "acli image.clone ubuntu-golden"
+                  }
+            },
+            {
+                  "id": "attach_flow_categories",
+                  "type": "rest",
+                  "config": {
+                        "method": "POST",
+                        "url": "/prism/v4/flow/categories",
+                        "output": {
+                              "app": "web",
+                              "environment": "prod"
+                        }
+                  }
+            },
+            {
+                  "id": "power_on_vm",
+                  "type": "shell",
+                  "config": {
+                        "command": "acli vm.on ntnx-web-01"
+                  }
+            },
+            {
+                  "id": "prism_health_check",
+                  "type": "rest",
+                  "config": {
+                        "method": "GET",
+                        "url": "/prism/v4/vms/ntnx-web-01/health"
                   }
             }
       ],
       "edges": [
-            ["check_cluster", "publish_result"]
-      ]
+            ["validate_blueprint", "reserve_ipam_address"],
+            ["validate_blueprint", "clone_ahv_image"],
+            ["reserve_ipam_address", "attach_flow_categories"],
+            ["clone_ahv_image", "power_on_vm"],
+            ["attach_flow_categories", "prism_health_check"],
+            ["power_on_vm", "prism_health_check"]
+      ],
+      "onFailure": {
+            "compensationFlow": "cleanup_failed_ahv_vm"
+      }
 }
 ```
+
+In this definition, `flowId` selects the executable flow implementation, each node represents one operation, `config` contains task-specific inputs, `edges` define ordering and parallelism, and `onFailure` identifies the cleanup workflow.
 
 To create a workflow:
 
