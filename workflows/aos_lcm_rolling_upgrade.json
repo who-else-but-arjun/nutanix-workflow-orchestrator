@@ -1,0 +1,29 @@
+{
+  "workflowName": "aos_lcm_rolling_upgrade",
+  "version": "1.0",
+  "input": {
+    "cluster": "prod-ahv-a",
+    "targetAos": "7.0.1",
+    "batchSize": 1
+  },
+  "nodes": [
+    { "id": "inventory_cluster", "type": "rest", "config": { "method": "GET", "url": "/prism/v4/clusters/prod-ahv-a", "delayMs": 2500 } },
+    { "id": "run_ncc_prechecks", "type": "shell", "config": { "command": "ncc health_checks run_all", "delayMs": 3500, "output": { "nccStatus": "pass" } } },
+    { "id": "stage_lcm_bundle", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/lcm/bundles", "delayMs": 4500 } },
+    { "id": "snapshot_prism_central", "type": "shell", "config": { "command": "pc-backup create --cluster prod-ahv-a", "delayMs": 5000 } },
+    { "id": "upgrade_batch_one", "type": "shell", "config": { "command": "lcm upgrade --batch 1", "delayMs": 6500 } },
+    { "id": "verify_storage_rebalance", "type": "rest", "config": { "method": "GET", "url": "/prism/v4/storage/rebalance", "delayMs": 3500 } },
+    { "id": "upgrade_batch_two", "type": "shell", "config": { "command": "lcm upgrade --batch 2", "delayMs": 6500 } },
+    { "id": "final_ncc_check", "type": "shell", "config": { "command": "ncc health_checks run_all --post-upgrade", "delayMs": 4000 } }
+  ],
+  "edges": [
+    ["inventory_cluster", "run_ncc_prechecks"],
+    ["run_ncc_prechecks", "stage_lcm_bundle"],
+    ["run_ncc_prechecks", "snapshot_prism_central"],
+    ["stage_lcm_bundle", "upgrade_batch_one"],
+    ["snapshot_prism_central", "upgrade_batch_one"],
+    ["upgrade_batch_one", "verify_storage_rebalance"],
+    ["verify_storage_rebalance", "upgrade_batch_two"],
+    ["upgrade_batch_two", "final_ncc_check"]
+  ]
+}

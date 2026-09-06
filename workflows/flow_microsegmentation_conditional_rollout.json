@@ -1,0 +1,23 @@
+{
+  "workflowName": "flow_microsegmentation_conditional_rollout",
+  "version": "1.0",
+  "input": {
+    "application": "payments-api",
+    "policyMode": "monitor"
+  },
+  "nodes": [
+    { "id": "discover_app_topology", "type": "rest", "config": { "method": "GET", "url": "/prism/v4/flow/apps/payments-api/topology", "delayMs": 850 } },
+    { "id": "assess_policy_risk", "type": "shell", "config": { "command": "flow policy assess payments-api", "delayMs": 700, "output": { "policyMode": "monitor" } } },
+    { "id": "generate_monitor_policy", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/flow/policies/monitor", "delayMs": 900 } },
+    { "id": "send_security_review", "type": "rest", "config": { "method": "POST", "url": "/servicenow/security-review", "delayMs": 600 } },
+    { "id": "enforce_policy", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/flow/policies/enforce", "delayMs": 900 } },
+    { "id": "validate_allowed_flows", "type": "shell", "config": { "command": "flow trace payments-api --expected-only", "delayMs": 750 } }
+  ],
+  "edges": [
+    ["discover_app_topology", "assess_policy_risk"],
+    ["assess_policy_risk", "generate_monitor_policy", "input.policyMode == monitor"],
+    ["assess_policy_risk", "send_security_review", "input.policyMode == enforce"],
+    ["send_security_review", "enforce_policy"],
+    ["enforce_policy", "validate_allowed_flows"]
+  ]
+}

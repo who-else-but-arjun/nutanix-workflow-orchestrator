@@ -1,0 +1,25 @@
+{
+  "workflowName": "cluster_upgrade_failure_demo",
+  "version": "1.0",
+  "input": {
+    "cluster": "edge-lab-a",
+    "node": "node-02",
+    "targetAos": "7.0.1"
+  },
+  "nodes": [
+    { "id": "ncc_precheck", "type": "rest", "config": { "method": "GET", "url": "/prism/v4/clusters/edge-lab-a/ncc", "delayMs": 600 } },
+    { "id": "snapshot_prism_config", "type": "shell", "config": { "command": "ncli cluster get-params > prism-backup.json", "delayMs": 750 } },
+    { "id": "evacuate_user_vms", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/hosts/node-02/evacuate", "delayMs": 900 } },
+    { "id": "upgrade_cvm", "type": "shell", "config": { "command": "lcm upgrade cvm node-02 --target 7.0.1", "delayMs": 1100, "simulateFailure": true } },
+    { "id": "restore_host_admission", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/hosts/node-02/restore", "delayMs": 650 } }
+  ],
+  "edges": [
+    ["ncc_precheck", "snapshot_prism_config"],
+    ["snapshot_prism_config", "evacuate_user_vms"],
+    ["evacuate_user_vms", "upgrade_cvm"],
+    ["upgrade_cvm", "restore_host_admission"]
+  ],
+  "onFailure": {
+    "compensationFlow": "cleanup_failed_ahv_vm"
+  }
+}
