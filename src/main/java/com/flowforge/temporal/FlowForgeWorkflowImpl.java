@@ -52,7 +52,8 @@ public class FlowForgeWorkflowImpl implements FlowForgeWorkflow {
             for (WorkflowNode node : ready) {
                 states.put(node.id(), NodeExecutionState.RUNNING);
                 tasks.put(node, Async.function(activities::execute, new TaskRequest(
-                        node.id(), node.type(), node.config(), request.input(), Map.copyOf(outputs))));
+                        node.id(), definition.flowId(), node.type(), node.config(), request.input(),
+                        Map.copyOf(outputs))));
             }
             publish(request, ExecutionState.RUNNING, states, results, null, null);
 

@@ -1,15 +1,16 @@
 {
   "workflowName": "cleanup_failed_ahv_vm",
+  "flowId": "cleanup_failed_ahv_vm_flow",
   "version": "1.0",
   "input": {
     "vmName": "ntnx-web-01",
     "cluster": "prod-ahv-a"
   },
   "nodes": [
-    { "id": "release_ipam_reservation", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/ipam/release", "delayMs": 650 } },
-    { "id": "detach_flow_categories", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/flow/categories/detach", "delayMs": 700 } },
-    { "id": "delete_partial_vm", "type": "shell", "config": { "command": "acli vm.delete ntnx-web-01", "delayMs": 900 } },
-    { "id": "notify_sre_channel", "type": "rest", "config": { "method": "POST", "url": "/prism-central/alerts", "delayMs": 450 } }
+    { "id": "release_ipam_reservation", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/ipam/release" } },
+    { "id": "detach_flow_categories", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/flow/categories/detach" } },
+    { "id": "delete_partial_vm", "type": "shell", "config": { "command": "acli vm.delete ntnx-web-01" } },
+    { "id": "notify_sre_channel", "type": "rest", "config": { "method": "POST", "url": "/prism-central/alerts" } }
   ],
   "edges": [
     ["release_ipam_reservation", "detach_flow_categories"],

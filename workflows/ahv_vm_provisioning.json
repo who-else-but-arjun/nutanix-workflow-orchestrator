@@ -1,5 +1,6 @@
 {
   "workflowName": "ahv_vm_provisioning",
+  "flowId": "ahv_vm_provisioning_flow",
   "version": "1.0",
   "input": {
     "vmName": "ntnx-web-01",
@@ -8,12 +9,12 @@
     "memoryMb": 8192
   },
   "nodes": [
-    { "id": "validate_blueprint", "type": "shell", "config": { "command": "calm blueprint validate web-tier", "delayMs": 650, "output": { "blueprint": "web-tier" } } },
-    { "id": "reserve_ipam_address", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/ipam/reservations", "delayMs": 800, "output": { "ip": "10.42.8.51" } } },
-    { "id": "clone_ahv_image", "type": "shell", "config": { "command": "acli image.clone ubuntu-golden", "delayMs": 1200 } },
-    { "id": "attach_flow_categories", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/flow/categories", "delayMs": 700, "output": { "app": "web", "environment": "prod" } } },
-    { "id": "power_on_vm", "type": "shell", "config": { "command": "acli vm.on ntnx-web-01", "delayMs": 900 } },
-    { "id": "prism_health_check", "type": "rest", "config": { "method": "GET", "url": "/prism/v4/vms/ntnx-web-01/health", "delayMs": 750 } }
+    { "id": "validate_blueprint", "type": "shell", "config": { "command": "calm blueprint validate web-tier", "output": { "blueprint": "web-tier" } } },
+    { "id": "reserve_ipam_address", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/ipam/reservations", "output": { "ip": "10.42.8.51" } } },
+    { "id": "clone_ahv_image", "type": "shell", "config": { "command": "acli image.clone ubuntu-golden" } },
+    { "id": "attach_flow_categories", "type": "rest", "config": { "method": "POST", "url": "/prism/v4/flow/categories", "output": { "app": "web", "environment": "prod" } } },
+    { "id": "power_on_vm", "type": "shell", "config": { "command": "acli vm.on ntnx-web-01" } },
+    { "id": "prism_health_check", "type": "rest", "config": { "method": "GET", "url": "/prism/v4/vms/ntnx-web-01/health" } }
   ],
   "edges": [
     ["validate_blueprint", "reserve_ipam_address"],

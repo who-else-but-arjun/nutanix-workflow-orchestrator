@@ -3,14 +3,20 @@ package com.flowforge.executors;
 import com.flowforge.domain.task.TaskExecutor;
 import com.flowforge.domain.task.TaskRequest;
 import com.flowforge.domain.task.TaskResult;
+import com.flowforge.engine.flow.WorkflowFlowRegistry;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Component
 public class ShellTaskExecutor implements TaskExecutor {
+    private final WorkflowFlowRegistry flowRegistry;
+
+    public ShellTaskExecutor(WorkflowFlowRegistry flowRegistry) {
+        this.flowRegistry = flowRegistry;
+    }
+
     @Override
     public String type() {
         return "shell";
@@ -22,15 +28,15 @@ public class ShellTaskExecutor implements TaskExecutor {
         if (command.isBlank()) {
             return TaskResult.failure("shell command is required");
         }
-        if (Boolean.TRUE.equals(request.config().get("simulateFailure"))) {
-            return TaskResult.failure("simulated shell failure");
+        TaskResult flowResult = flowRegistry.resolve(request.flowId()).execute(request);
+        if (!flowResult.success()) {
+            return flowResult;
         }
-        long delayMs = ((Number) request.config().getOrDefault("delayMs", 450)).longValue();
-        sleep(delayMs);
         Map<String, Object> output = new LinkedHashMap<>();
         output.put("command", command);
         output.put("exitCode", 0);
-        output.put("stdout", "simulated shell execution completed");
+        output.put("stdout", "dummy shell operation completed");
+        output.putAll(flowResult.output());
         output.putAll(configuredOutput(request.config()));
         return TaskResult.success(output);
     }
@@ -41,11 +47,4 @@ public class ShellTaskExecutor implements TaskExecutor {
         return output instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
     }
 
-    private void sleep(long delayMs) {
-        try {
-            Thread.sleep(Duration.ofMillis(Math.max(0, delayMs)).toMillis());
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
-    }
 }
