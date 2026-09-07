@@ -1,8 +1,8 @@
-# FlowForge Design Document
+# Nutanix Workflow Orchestrator Design Document
 
 ## 1. Document Purpose
 
-FlowForge is a configuration-driven workflow orchestration engine for Nutanix-style infrastructure operations. It accepts workflow definitions as JSON, validates them as directed acyclic graphs (DAGs), executes shell and REST task nodes through pluggable executors, tracks execution state, invokes compensation workflows after failures, and exposes the result through a React dashboard and the Temporal UI.
+Nutanix Workflow Orchestrator is a configuration-driven workflow orchestration engine for infrastructure operations. It accepts workflow definitions as JSON, validates them as directed acyclic graphs (DAGs), executes shell and REST task nodes through pluggable executors, tracks execution state, invokes compensation workflows after failures, and exposes the result through a React dashboard and the Temporal UI.
 
 This document explains:
 
@@ -13,14 +13,14 @@ This document explains:
 - how configuration drives workflow behavior;
 - how a team creates and operates new workflows;
 - the reasoning behind the major design decisions;
-- the value FlowForge provides to an infrastructure-focused company;
+- the value Nutanix Workflow Orchestrator provides to an infrastructure-focused company;
 - current limitations and the next production-hardening steps.
 
 The document describes the current repository implementation. It does not present planned capabilities, such as database persistence or automatic retry policies, as if they already exist.
 
 ## 2. Executive Summary
 
-FlowForge separates workflow intent from workflow execution:
+Nutanix Workflow Orchestrator separates workflow intent from workflow execution:
 
 ```text
 JSON workflow definition
@@ -72,7 +72,7 @@ Without an orchestration layer, these operations tend to become:
 - fragile workflows that disappear when a process crashes;
 - inconsistent recovery procedures.
 
-FlowForge addresses those problems with a small, explicit execution model.
+Nutanix Workflow Orchestrator addresses those problems with a small, explicit execution model.
 
 ### 3.1 Primary goals
 
@@ -112,7 +112,7 @@ These are extension points, not reasons to make the initial engine more complica
 | Domain | Workflow structure, task contracts, state enums, DAG validation | `domain/` |
 | Engine | Scheduling and executor resolution abstractions | `engine/` |
 | Temporal adapter | Connect the application port to Temporal SDK types | `temporal/TemporalExecutionAdapter` |
-| Temporal runtime | Durable workflow loop, activity dispatch, child workflows | `temporal/FlowForgeWorkflowImpl` |
+| Temporal runtime | Durable workflow loop, activity dispatch, child workflows | `temporal/Nutanix Workflow OrchestratorWorkflowImpl` |
 | Executors | Perform a concrete task type | `executors/` |
 | Metadata store | Keep definitions and dashboard execution projections | `persistence/InMemoryWorkflowStore` |
 | Dashboard | List workflows, start runs, inspect state, link to Temporal | `dashboard/src/` |
@@ -142,8 +142,8 @@ flowchart LR
     Api --> Service[WorkflowService]
     Service --> Adapter[TemporalExecutionAdapter]
     Adapter --> Temporal[Temporal Server]
-    Temporal --> Worker[FlowForge Temporal Worker]
-    Worker --> Activities[FlowForge Activities]
+    Temporal --> Worker[Nutanix Workflow Orchestrator Temporal Worker]
+    Worker --> Activities[Nutanix Workflow Orchestrator Activities]
     Activities --> Registry[ExecutorRegistry]
     Registry --> Shell[ShellTaskExecutor]
     Registry --> Rest[RestTaskExecutor]
@@ -152,7 +152,7 @@ flowchart LR
     TemporalUI[Temporal UI] --> Temporal
 ```
 
-Locally, Docker Compose supplies PostgreSQL, Temporal, and Temporal UI. Temporal uses PostgreSQL for its own service persistence. FlowForge's application-level metadata store is currently an in-memory repository, so restarting the Spring Boot process clears the dashboard catalog and execution metadata even though Temporal retains its own history.
+Locally, Docker Compose supplies PostgreSQL, Temporal, and Temporal UI. Temporal uses PostgreSQL for its own service persistence. Nutanix Workflow Orchestrator's application-level metadata store is currently an in-memory repository, so restarting the Spring Boot process clears the dashboard catalog and execution metadata even though Temporal retains its own history.
 
 ### 4.4 Separation of concerns inside a workflow
 
@@ -316,7 +316,7 @@ An `ExecutionRecord` contains:
 
 | Field | Meaning |
 |---|---|
-| `id` | FlowForge execution identifier |
+| `id` | Nutanix Workflow Orchestrator execution identifier |
 | `workflowName` | Definition selected for the run |
 | `version` | Definition version |
 | `state` | Current workflow FSM state |
@@ -376,7 +376,7 @@ Cycle detection uses depth-first traversal with `visiting` and `visited` sets. R
 
 ### 6.3 Parallelism
 
-When several nodes are ready, `FlowForgeWorkflowImpl` starts them together using Temporal asynchronous functions. The scheduler returns a list rather than a single node specifically to allow independent branches to run concurrently.
+When several nodes are ready, `Nutanix Workflow OrchestratorWorkflowImpl` starts them together using Temporal asynchronous functions. The scheduler returns a list rather than a single node specifically to allow independent branches to run concurrently.
 
 For example:
 
@@ -466,7 +466,7 @@ The Temporal workflow implementation follows this sequence:
 
 The application depends on `WorkflowExecutionPort`, not directly on the Temporal client. `TemporalExecutionAdapter` is the infrastructure adapter that:
 
-1. creates a FlowForge execution ID;
+1. creates a Nutanix Workflow Orchestrator execution ID;
 2. saves an initial dashboard record;
 3. creates a Temporal workflow stub with the configured task queue;
 4. starts the Temporal workflow with the immutable definition and input;
@@ -476,16 +476,16 @@ This is dependency inversion in practice. If the execution substrate changed lat
 
 ### 8.2 Temporal workflow and activities
 
-`FlowForgeWorkflowImpl` is a Temporal workflow implementation. It owns deterministic orchestration decisions: state transitions, dependency evaluation, asynchronous activity invocation, and child compensation workflow dispatch.
+`Nutanix Workflow OrchestratorWorkflowImpl` is a Temporal workflow implementation. It owns deterministic orchestration decisions: state transitions, dependency evaluation, asynchronous activity invocation, and child compensation workflow dispatch.
 
-`FlowForgeActivitiesImpl` is the activity implementation. It performs side effects by resolving the task type through `ExecutorRegistry`, and it publishes execution projections to the metadata store.
+`Nutanix Workflow OrchestratorActivitiesImpl` is the activity implementation. It performs side effects by resolving the task type through `ExecutorRegistry`, and it publishes execution projections to the metadata store.
 
 The worker is configured in `TemporalConfiguration`:
 
 - `WorkflowServiceStubs` connects to the configured Temporal target;
 - `WorkflowClient` uses the configured namespace;
 - `WorkerFactory` creates a worker for the configured task queue;
-- the worker registers `FlowForgeWorkflowImpl` and `FlowForgeActivitiesImpl`.
+- the worker registers `Nutanix Workflow OrchestratorWorkflowImpl` and `Nutanix Workflow OrchestratorActivitiesImpl`.
 
 ### 8.3 Failure and compensation
 
@@ -495,7 +495,7 @@ Compensation is modeled as a normal workflow, not as an implicit reverse travers
 ahv_vm_provisioning fails
           |
           v
-FlowForgeWorkflowImpl loads cleanup_failed_ahv_vm
+Nutanix Workflow OrchestratorWorkflowImpl loads cleanup_failed_ahv_vm
           |
           v
 Temporal child workflow executes compensation DAG
@@ -508,7 +508,7 @@ This is a better model for infrastructure operations because many actions cannot
 
 ### 8.4 Temporal UI correlation
 
-Every dashboard execution stores the Temporal namespace, workflow ID, and run ID. The dashboard builds a Temporal UI history URL from those fields. Operators can move from the business-facing FlowForge view to Temporal's event history without searching manually.
+Every dashboard execution stores the Temporal namespace, workflow ID, and run ID. The dashboard builds a Temporal UI history URL from those fields. Operators can move from the business-facing Nutanix Workflow Orchestrator view to Temporal's event history without searching manually.
 
 ## 9. Configuration-Driven Design
 
@@ -518,7 +518,7 @@ The workflow topology, task ordering, task types, task configuration, default in
 
 At startup, `DataSeeder`:
 
-1. reads the directory configured by `flowforge.workflow-directory`;
+1. reads the directory configured by `Nutanix Workflow Orchestrator.workflow-directory`;
 2. finds `.json` files;
 3. deserializes them into `WorkflowDefinitionRequest` objects;
 4. maps them into domain definitions;
@@ -528,15 +528,15 @@ At startup, `DataSeeder`:
 The directory defaults to `workflows`, and can be changed with:
 
 ```properties
-flowforge.workflow-directory=${FLOWFORGE_WORKFLOW_DIRECTORY:workflows}
+Nutanix Workflow Orchestrator.workflow-directory=${Nutanix Workflow Orchestrator_WORKFLOW_DIRECTORY:workflows}
 ```
 
 Temporal runtime settings are also externalized:
 
 ```properties
-flowforge.temporal.target=${TEMPORAL_ADDRESS:127.0.0.1:7233}
-flowforge.temporal.namespace=${TEMPORAL_NAMESPACE:default}
-flowforge.temporal.task-queue=${TEMPORAL_TASK_QUEUE:flowforge}
+Nutanix Workflow Orchestrator.temporal.target=${TEMPORAL_ADDRESS:127.0.0.1:7233}
+Nutanix Workflow Orchestrator.temporal.namespace=${TEMPORAL_NAMESPACE:default}
+Nutanix Workflow Orchestrator.temporal.task-queue=${TEMPORAL_TASK_QUEUE:Nutanix Workflow Orchestrator}
 ```
 
 ### 9.2 Benefits of configuration-driven workflows
@@ -615,7 +615,7 @@ The extension path is intentionally separate from workflow creation:
 5. Register the implementation as a Spring component.
 6. Use the new type in JSON.
 
-For example, adding `DockerTaskExecutor` should not require changes to `WorkflowService`, `ReadyNodeResolver`, `FlowForgeWorkflowImpl`, or the dashboard. Spring injects all executor beans into `ExecutorRegistry`, which resolves them by type.
+For example, adding `DockerTaskExecutor` should not require changes to `WorkflowService`, `ReadyNodeResolver`, `Nutanix Workflow OrchestratorWorkflowImpl`, or the dashboard. Spring injects all executor beans into `ExecutorRegistry`, which resolves them by type.
 
 ## 11. API and Dashboard Design
 
@@ -672,7 +672,7 @@ Examples:
 - `DagValidator` validates graph structure.
 - `ReadyNodeResolver` decides readiness.
 - `ShellTaskExecutor` handles shell semantics.
-- `FlowForgeActivitiesImpl` bridges activities and execution metadata.
+- `Nutanix Workflow OrchestratorActivitiesImpl` bridges activities and execution metadata.
 - `ExecutionQueryService` serves dashboard queries.
 
 The classes collaborate rather than becoming one large workflow manager.
@@ -770,7 +770,7 @@ For example, IPAM reservation and image cloning can happen in parallel after blu
 
 ### 13.3 Optimize failure diagnosis
 
-Small workflow steps create a narrow failure domain. Instead of reporting that a large provisioning script failed, FlowForge can report that `reserve_ipam_address` failed, preserve its error and output, mark downstream work skipped, and dispatch the configured compensation flow. This reduces time to diagnose and prevents operators from repeating already-successful work.
+Small workflow steps create a narrow failure domain. Instead of reporting that a large provisioning script failed, Nutanix Workflow Orchestrator can report that `reserve_ipam_address` failed, preserve its error and output, mark downstream work skipped, and dispatch the configured compensation flow. This reduces time to diagnose and prevents operators from repeating already-successful work.
 
 ### 13.4 Optimize recovery work
 
@@ -836,7 +836,7 @@ Shell commands and REST calls have different execution semantics, but the schedu
 
 ### Step 6: Avoid building a custom durable runtime
 
-Crash recovery, worker coordination, task queues, history, and durable execution are difficult infrastructure problems. Temporal already provides those capabilities. The design places Temporal behind an adapter so FlowForge owns workflow semantics while Temporal owns execution durability.
+Crash recovery, worker coordination, task queues, history, and durable execution are difficult infrastructure problems. Temporal already provides those capabilities. The design places Temporal behind an adapter so Nutanix Workflow Orchestrator owns workflow semantics while Temporal owns execution durability.
 
 ### Step 7: Model compensation explicitly
 
@@ -967,15 +967,15 @@ npm run dev
 
 Open:
 
-- FlowForge dashboard: `http://127.0.0.1:5173`
-- FlowForge API: `http://127.0.0.1:8080`
+- Nutanix Workflow Orchestrator dashboard: `http://127.0.0.1:5173`
+- Nutanix Workflow Orchestrator API: `http://127.0.0.1:8080`
 - Temporal UI: `http://127.0.0.1:8088`
 
 To add a workflow, place a valid JSON definition in `workflows/` and restart the backend. The dashboard refreshes its catalog from `GET /api/workflows`.
 
 ## 19. Final Architecture Statement
 
-FlowForge is intentionally a domain layer over a durable execution substrate. Its value is not merely that it starts Temporal workflows. Its value is the set of clear contracts around Temporal:
+Nutanix Workflow Orchestrator is intentionally a domain layer over a durable execution substrate. Its value is not merely that it starts Temporal workflows. Its value is the set of clear contracts around Temporal:
 
 - JSON expresses operational intent.
 - Domain records express validated workflow structure.
